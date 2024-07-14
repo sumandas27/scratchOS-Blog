@@ -1,4 +1,4 @@
-# Writing A Boot Sector
+# Writing a Boot Sector
 
 Now that we have a freestanding Rust binary designed for the x86 architecture, let's run it on an x86 machine...
 
@@ -11,3 +11,5 @@ Instead, we are going to use an *emulator*, which emulates the hardware of a reg
 `QEMU` is definitely the most popular emulator used for OS development. You can find installation instructions at <https://www.qemu.org/download/>. Usually, it's just one terminal command.
 
 Installing `QEMU` should allow you to use the `qemu-system-x86_64` command, which emulates an x86 machine. Run `qemu-system-x86_64 --version` on your terminal to verify that it's there. This is nice because after we are done with setup, it won't matter which architecture your machine uses as we will all be developing for x86 through the `QEMU` emulator.
+
+## Creating a Raw Binary File
