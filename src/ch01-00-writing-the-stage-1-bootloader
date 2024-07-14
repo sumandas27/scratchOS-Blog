@@ -1,0 +1,7 @@
+# Writing the Stage 1 Bootloader
+
+Before starting on an operating system, I'll spend the first few chapters writing a bootloader for our operating system.
+
+Due to the nature of the machine's environment when first powered on (which will be covered later this chapter), it's not feasable to write the bootloader in one program. Instead, bootloaders are commonly split into different programs called *stages*, where each stage is responsible for bringing the machine closer and closer to an environment suitable for an operating system.
+
+The bootloader itself in this tutorial will be split into 3 different *stages*. This section will be about writing its first stage.
