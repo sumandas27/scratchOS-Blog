@@ -6,7 +6,7 @@ This repository contains the source code for <https://sumandas27.github.io/Bare-
 
 **Writing the Stage 1 Bootloader**
 
-* [A Freestanding x86 Rust Binary](https://sumandas27.github.io/Bare-OS-Book/ch01-01-a-freestanding-x86-rust-binary.html)
+* [A Freestanding x86 Rust Binary](https://sumandas27.github.io/BareOS-Blog/ch01-01-a-freestanding-x86-rust-binary.html)
 * Writing a Boot Sector *(current work in progress)*
 * Exploring the Machine's Environment *(upcoming)*
 * Escaping the Boot Sector *(upcoming*)
