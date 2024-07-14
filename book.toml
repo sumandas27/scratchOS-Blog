@@ -3,4 +3,4 @@ authors = ["suman"]
 language = "en"
 multilingual = false
 src = "src"
-title = "Building an Operating System in Rust"
+title = "A dependency-free x86_64 Rust bootloader and operating system blog"

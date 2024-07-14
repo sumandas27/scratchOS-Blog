@@ -1,3 +1,7 @@
+> ❓ **Is there a source code reference for this blog?**
+>
+> The final source code at the end of every blog post can be found within the `bareos-blog-src/` directory within this blog's [GitHub Repository](https://github.com/sumandas27/BareOS-Blog) to be used as a reference as you read through the blog.
+
 # Introduction
 
 Let's make an operating system in Rust. An *operating system* is the layer of abstraction between a computer's hardware and software.
@@ -18,7 +22,7 @@ When a machine is first powered on, it is generally not in a suitable state for 
   <img style="width:500px;" src="img/bootloader-responsibility.png">
 </p>
 
-Since we're writing this with *no* dependencies, I'll be spending the first few chapters building a *bootloader*. Even though a bootloader and an operating system are two completely disjoint pieces of software, they share a lot of common covered concepts. I found myself having a much easier time with operating system development when I first wrote a bootloader. The bootloader I'll build in this tutorial will be *minimal*, including only what is necessary to reach to the operating system.
+Since we're writing this with *no* dependencies, I'll be spending the first few chapters building a *bootloader*. Even though a bootloader and an operating system are two completely disjoint pieces of software, they share a lot of common covered concepts. I found myself having a much easier time with operating system development when I first wrote a bootloader. The bootloader I'll build in this tutorial will be *minimal*, including only what is necessary to reach the operating system.
 
 ## For Which Architecture?
 
