@@ -1,4 +1,4 @@
-# BareOS
+# scratchOS
 
 This repository contains the source code for <https://sumandas27.github.io/BareOS-Blog/>, where I write an x86_64 bootloader and an operating system without any Rust external dependencies.
 

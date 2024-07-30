@@ -94,9 +94,13 @@ Each one of these fields are separated by dashes. You can run the terminal comma
 rustc --version --verbose
 ``` 
 
-...to see what target triplet Rust is currently compiling for on your machine, next to `host:`.
+...to see what target triplet Rust is currently compiling for on your machine, next to `host:`. Most likely, it's not the target triplet of the specific platform that we want. 
 
-Most likely, it is not the target that we want. Let's construct a target triplet for an x86 machine on start-up. We'll then specify to Rust that we want to compile for this particular target triplet.
+> ℹ️ **INFO:** The idea of compiling a program for a different platform that *isn't* your own is called *cross compiling*. When doing OS development in C/C++, installing and setting up a "cross compiler" is not trivial. 
+> 
+> Thankfully, every Rust compiler is a cross compiler, meaning it has the ability to compile for other platforms besides its host platform.
+
+Let's construct a target triplet for an x86 machine on start-up. We'll then specify to Rust that we want to compile for this particular target triplet.
 
 > ❗ **IMPORTANT** An x86 machine on start-up begins in *16-bit real mode*. This will be important when figuring out its target triplet.
 
@@ -220,7 +224,7 @@ Rust has a runtime system but we don't have access to it without the standard li
 #![no_std]
 #![no_main]
 
-#![panic_handler]
+#[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> !
 {
     loop {}
