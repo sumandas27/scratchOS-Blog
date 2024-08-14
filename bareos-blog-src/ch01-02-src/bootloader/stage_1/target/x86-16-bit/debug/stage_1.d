@@ -1,1 +1,0 @@
-/Users/suman/source/personal/bareos/bareos-blog-src/ch01-02-src/bootloader/stage_1/target/x86-16-bit/debug/stage_1: /Users/suman/source/personal/bareos/bareos-blog-src/ch01-02-src/bootloader/stage_1/src/main.rs

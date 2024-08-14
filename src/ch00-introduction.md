@@ -1,6 +1,6 @@
 > ❓ **Is there a source code reference for this blog?**
 >
-> The final source code at the end of every blog post can be found within the `bareos-blog-src/` directory within this blog's [GitHub Repository](https://github.com/sumandas27/BareOS-Blog) to be used as a reference as you read through the blog.
+> The final source code at the end of every blog post can be found within the `scratch_os-blog-src/` directory within this blog's [GitHub Repository](https://github.com/sumandas27/scratchOS-Blog) to be used as a reference as you read through the blog.
 
 # Introduction
 
@@ -12,7 +12,7 @@ Let's make an operating system in Rust. An *operating system* is the layer of ab
 
 It allows users like you and I to utilize the fullest potential of their computer's hardware without worrying about the inner details of the hardware. This is a very broad definition because the operating system is responsible for a broad range of tasks like memory, processes, networking, concurrency, etc.
 
-Our goal will be to write an operating system in Rust *without any dependencies*! Just Rust and its core library (thus the name BareOS). This probably isn't feasable for industry-level operating systems, but is great to learn as you get to build everything from the bottom up.
+Our goal will be to write an operating system in Rust *without any dependencies*! Just Rust and its core library (thus the name scratchOS, we're writing this *kind of* from scratch). This probably isn't feasable for industry-level operating systems, but is great to learn about embedded programming as you get to build everything from the bottom up.
 
 ## How Does an Operating System Run?
 

@@ -25,8 +25,11 @@ Thankfully, there is a command line tool called `objcopy` that precisely strips 
 > ⊞ **On Windows:**
 > 1. If you haven't already, install the MSYS2 Shell through <https://www.msys2.org/>.
 > 2. Running `pacman -S mingw-w64-x86_64-binutils` within the MSYS2 Shell installs `objcopy` on your machine.
+>
+>    ❗ **IMPORTANT:** `objcopy` will be usable within Window's default Command Prompt, not the MSYS2 shell.
+>
 > 3. If you still cannot run `objcopy`, make sure that `C:\mysys64\mingw64\bin` (MSYS2 Shell's binaries directory) is part of your system's `Path` environment variable.
->     1. Search up `environment variabes`, open the `Control panel` and choose <kbd>Environment Variables...</kbd>
+>     1. Navigate to your system's environment variables under `Control Panel`.
 >     2. Under `System variables`, add `C:\mysys64\mingw64\bin` to the `Path` variable. Restart your shell and `objcopy` should be usable now.
 >
 > You can verify installation by running `objcopy --version` on Linux and Windows or `x86_64-elf-objcopy` on the Mac.
@@ -115,11 +118,11 @@ Secondary storage devices like the hard disk are split into *sectors*, which are
 > * `0b` prefixes a number in binary (*base-2*, with only `0` and `1` as its digits)
 > * `0o` prefixes a number in octal (*base-8*, with digits `0` - `7`)
 
-① **We don't have `0xaa55` as the 511<sup>th</sup> and 512<sup>th</sup> bytes of our program's raw binary file**, which is why it won't boot.
+1️⃣ **We don't have `0xaa55` as the 511<sup>th</sup> and 512<sup>th</sup> bytes of our program's raw binary file**, which is why it won't boot.
 
 Remember, memory in secondary storage isn't directly usable by the CPU. In order for the CPU to start operating on our bootloader in its hard disk, it copies the first sector in the hard disk and pastes it into RAM (primary storage) *specifically* at memory location `0x7c00`. It will then interpret the start of the first sector at `0x7c00` as computer instructions and start running them on the CPU.
 
-If we want the machine to execute our program, ② **we need to put our program at the *start* of the hard disk**. This allows the program to be placed at `0x7c00` in RAM where the CPU will begin executing it.
+If we want the machine to execute our program, 2️⃣ **we need to put our program at the *start* of the hard disk**. This allows the program to be placed at `0x7c00` in RAM where the CPU will begin executing it.
 
 ## Creating a Linker Script
 
@@ -164,15 +167,15 @@ The linker script has two components:
 The skeleton of a linker scipt looks like this:
 
 ```Linker Script
-ENTRY(①)
+ENTRY(1️⃣)
 
 SECTIONS
 {
-    ②
+    2️⃣
 }
 ```
 
-① is where we will be declaring our entry point, and ② is where we define the ordering of our sections.
+1️⃣ is where we will be declaring our entry point, and 2️⃣ is where we define the ordering of our sections.
 
 ## Creating an Entry Point
 
@@ -202,7 +205,7 @@ ENTRY(entry)
 
 SECTIONS
 {
-    ②
+    
 }
 ```
 
@@ -228,10 +231,164 @@ SECTIONS
 >
 > If the `entry` function doesn't have the `#[no_mangle]` attribute, then the label we declared in the linker script (`entry`) won't match up with the mangled label in Rust, and the linker wouldn't be able to find the function our linker script refers to.
 >
-> So, we tell the the compiler to leave the `entry` function unmangled with the `#[no_mangle] attribute so that the linker script and the linker are on the same page.
+> So, we tell the the compiler to leave the `entry` function unmangled with the `#[no_mangle]` attribute so that the linker script and the linker are on the same page.
 
 ## Placing the Entry Point
 
-We now have an `entry` point, but program entry points are not necessarily placed in the beginning of the produced binary. For example, Rust and C have no specification in the ordering of function placements, meaning their `main` entry point can be who knows where?
+We now have an `entry` point, but program entry points are not necessarily placed in the beginning of the produced binary. For example, Rust and C have no specification in the ordering of function placements, meaning their `main` entry point can be placed who knows where?
 
-This is where the `SECTIONS` part of the linker script, which is where we get to define the ordering of the different *link sections* of the program
+This is where the `SECTIONS` part of the linker script, which is where we get to define the ordering of the different *sections* of the program.
+
+Rust's compiler and assembler breaks down our Rust source code into different *sections* in our ELF file. The 4 most commonly generated sections are...
+
+* The `.text` section, which contains the instructions of our program. Remember that code itself is memory, and this is where they are stored.
+* The `.data` section keeps track of a program's global data and static variables.
+* The `.rodata` section keeps track of read only data like global constants.
+* The `.bss` section keeps track of *uninitialized* global data.
+
+We can see all the sections that Rust generated for our program by using the `readelf` tool on Linux/Windows or `x86_64-elf-readelf` on macOS (which should have been installed with `x86_64-elf-objcopy`). First, compile the project with `cargo build`. Then run...
+
+* 🐧/⊞ **On Linux/Windows:** `readelf -l stage_1`
+*  **On Mac:** `x86_64-elf-readelf -l stage_1`
+
+...where `stage_1` is the compiled ELF file by Rust, and we can see Rust generates 1 section for the program: `.text.entry`:
+
+<p align="center">
+  <img width="500px" src="img/stage-1-link-sections.png">
+</p>
+
+`.text.entry` is a subsection of its `.text` section. More specifically, it will contain the instructions of the `entry` function in our Rust source code. We can place this section at the very start of the produced raw binary by updating the linker script:
+
+```Linker Script linenums
+ENTRY(entry)
+
+SECTIONS
+{
+    .text : 
+    {
+        *(.text.entry)
+        *(.text .text.*)
+    }
+}
+```
+
+Let's analyze this:
+
+* `.text :` names a new *section*. We can name it whatever we want, but I decided to stay consistent and name it `.text`.
+* `*(.text.entry)` is where I specifically tell the linker to place our `.text.entry` section first. This line makes `.text.entry` a "sub-section" of our newly created `.text` section.
+* `*(.text .text.*)` is where I place any other Rust-generated `.text` subsections. These don't exist right now, but I'm future-proofing the linker script for when we do add more code.
+
+<p align="center">
+  <img width="500px" src="img/section-layout.png">
+</p>
+
+> ⚠️ **NOTE:** If you recompile and run the `readelf` tool at this point, you'll notice the `.text.entry` section doesn't show up anymore. The `readelf` tool only shows *top-level* sections. `.text.entry` won't show up anymore since it's now a subsection of the newly created `.text`.
+
+Because there isn't any global data, we don't have to worry about the `.data`, `.rodata`, or `.bss` sections.
+
+We've effectively put our entry code at the start of our program, but there's still a problem.
+
+## Correcting Program Offsets
+
+Remember, our bootloader will be placed at memory address `0x7c00`. However, the linker by default believes the program starts at `0x0`. We can verify this with the previous `readelf` tool output:
+
+<p align="center">
+  <img width="500px" src="img/entry-point-0x0.png">
+</p>
+
+Therefore, it will set any function labels and global data to also be offset from `0x0` and if we ever call these functions or access global data from the bootloader, it will go to some uncharted region in memory near `0x0` when it's really near `0x7c00`. 
+
+Instead, we need to code the right offset into our linker script so that the linker is aligned with where QEMU will actually place our program. Solving this isn't too bad...
+
+The linker script's *location counter* (referred to by just the `.` character) stores what the current output location is. It can be thought of as a pointer to the current memory location during program generation.
+
+By setting this location counter to `0x7c00` just before the linker generates our named `.text` link section, it will treat everything within the section as if it is placed directly after `0x7c00`. Doing this is simple: just add the following line to the linker script...
+
+```Linker Script
+ENTRY(entry)
+
+SECTIONS
+{
+    . = 0x7c00;
+    .text : 
+    {
+        *(.text.entry)
+        *(.text .text.*)
+    }
+}
+```
+
+...and we're good to go. We tell the linker to generate the `.text` link section as if it starts at `0x7c00`, so all our function labels and data are placed at the right offset. We can confirm this by rebuilding our project with `cargo build` and running the `readelf` command again:
+
+<p align="center">
+  <img width="500px" src="img/entry-point-correct.png">
+</p>
+
+## Placing the Boot Magic Number
+
+Linker scripts also allows adding specific bytes in specific places. We can include the magic number `0xaa55` by adding the following link section to the script:
+
+```Linker Script
+ENTRY(entry)
+
+SECTIONS
+{
+    . = 0x7c00;
+    .text : 
+    {
+        *(.text.entry)
+        *(.text .text.*)
+    }
+
+    . = 0x7c00 + 510;
+    .magic_number :
+    {
+        SHORT(0xaa55)
+    }
+}
+```
+
+Let's go through the final linker script:
+
+* `. = 0x7c00;` tells the linker to treat the current "output location" to `0x7c00` before creating any link sections.
+* `.text : { ... }` tells the linker to create the `.text` link section and because it is placed directly after `0x7c00`, all generated offsets will point to the right location in the machine's RAM.
+* `. = 0x7c00 + 510` places the new location counter to `0x7c00 + 510`, leaving enough empty space in the middle.
+* `.magic_number : { ... }` is where the linker adds the `.magic_number` link section and populates it with the `0xaa55` magic number. The linker script uses `BYTE` to declare 1 byte, `SHORT` for 2, `QUAD` for 4, etc. Since we set to location counter to `0x7c00 + 510` before this link section, these 2 magic-number bytes will be placed in the last 2 bytes of the generated raw binary's first sector.
+
+<p align="center">
+  <img width="500px" src="img/stage-1-layout.png">
+</p>
+
+When we rebuild the Rust project and convert the compiled ELF file to a raw binary with `objcopy` (just as before in this section), we should have a valid runnable x86 bootloader binary file that 1️⃣ places the entry point at the start of the file, and 2️⃣ places the magic number `0xaa55` at the end of the raw binary's first sector.
+
+You can confirm these properties if you have a built-in byte-by-byte file analyzer in your code editor (VSCode should have one). If not, you can see the byte-by-byte contents through the terminal:
+
+> /🐧 **On Mac/Linux:** `xxd stage_1.bin`
+>
+> ⊞ **On Windows:** `Format-Hex stage_1.bin` on Window's PowerShell (not Command Prompt).
+
+<p align="center">
+  <img width="500px" src="img/stage-1-byte-by-byte-xxd.png">
+</p>
+
+We can see the magic number `0xaa55` (could be reversed due to *machine endianness*, or whether your machine outputs the most-significant or least-significant byte first) placed as the last 2 bytes of the binary's first sector. 
+
+We also see some bytes placed in at the start of the file: these bytes are instructions from the `entry` function from Rust that we specifically told the linker to place at the start (through the `.text.entry` section). Everything looks good, let's convert the compiled ELF file into a raw binary...
+
+```properties
+objcopy -I elf32-i386 -O binary stage_1 stage_1.bin
+```
+
+...and run it on QEMU:
+
+```properties
+qemu-system-x86_64 -drive format=raw,file=stage_1.bin
+```
+
+<p align="center">
+  <img width="500px" src="img/booting-from-hard-disk.png">
+</p>
+
+The emulator detected our hard disk to be a bootable device and hangs due to the infinite loop within Rust's `entry` function. Perfect!
+
+We finally have a runnable stage 1 bootloader on x86 emulators and machines. In the next section, we'll actually begin development in Rust so that our bootloader does more than just infinitely hang.
