@@ -1,4 +1,4 @@
-# A Freestanding x86 Rust Binary
+## A Freestanding x86 Rust Binary
 
 Rust code by default generates programs that are run on your personal machine, which may or may not be the right architecture (x86). The goal of this section is to create a Rust project that compiles specifically for the desired x86 architecture, regardless of what your personal machine's architecture is.
 
@@ -7,7 +7,7 @@ Rust code by default generates programs that are run on your personal machine, w
 The project will contain a kernel and the first stage bootloader for now. My recommendation is to structure your project something like...
 
 ```
-bare_os
+scratch_os
 ├── bootloader
 │   └── stage_1
 │       ├── Cargo.toml
@@ -19,8 +19,8 @@ bare_os
 ...where `kernel` is an empty directory for now. If you're on a UNIX system, creating this structure on the terminal looks something like...
 
 ```properties
-mkdir bare_os
-cd bare_os
+mkdir scratch_os
+cd scratch_os
 mkdir bootloader
 mkdir kernel
 cd bootloader
@@ -29,7 +29,7 @@ cargo new stage_1
 
 `cargo new stage_1` will automatically set up the `stage_1` directory for us and populate `main.rs` with a simple `Hello, World!` program. We'll reuse this once we get to stages 2 and 3 for the bootloader. Let's start writing the bootloader.
 
-## Unlinking with the Standard Library
+### Unlinking with the Standard Library
 
 `cargo`'s auto-generated project has a few problems. Firstly, Rust **by default** links with its *standard library* when generating executables. In general, the Rust standard library requires OS-dependent features like a heap, networking, threads, etc. Because we don't have an operating system, we can't link to the Rust standard library. Disabling this is pretty easy, we just need to include the `#![no_std]` attribute to the very top of `main.rs`.
 
@@ -79,7 +79,7 @@ The third error specifies that the `eh_personality` language item is required. I
 > 
 > Regardless, part of this error is about the default "panic strategy" that Rust uses.
 
-## Specifying the x86 Target
+### Specifying the x86 Target
 
 By default, Rust compiles for your personal machine's *target triplet*, which describes the *platform* of a machine. A target triple contains its...
 
@@ -165,7 +165,7 @@ The target JSON file's location (wherever you choose to store it) can be specifi
 target = "relative-path/from-stage-1-dir/to-your/x86-16-bit.json"
 ```
 
-We will need multiple target specifications as we write the bootloader/operating system, so my recommendation is to have a `target_specs` directory just underneath the root `bare_os` directory to store all the target specifications.
+We will need multiple target specifications as we write the bootloader/operating system, so my recommendation is to have a `target_specs` directory just underneath the root `scratch_os` directory to store all the target specifications.
 
 Now when I run the project, the `eh_personality` error disappears, but there's a few more issues that come up:
 
@@ -175,7 +175,7 @@ Now when I run the project, the `eh_personality` error disappears, but there's a
 
 It seems like Rust can't find the `core` and `compiler-builtins` crates.
 
-## Compiling Core Crates
+### Compiling Core Crates
 
 A Rust project may link without a standard library, but it must *at least* contain the `core` and `compiler_builtins` crates. These crates come precompiled for the most popular target triplets when we first install Rust. However, because we defined our customized target through a JSON file, Rust doesn't contain these crates pre-built for it.
 
@@ -208,7 +208,7 @@ rustup show
   <img width="350px", src="img/rust-nightly.png">
 </p>
 
-## Overwriting Rust's Entry Point
+### Overwriting Rust's Entry Point
 
 Now when we compile, there is one more error to fix where we are missing a `start` language item...
 
@@ -247,7 +247,7 @@ To simplify, Rust's runtime system includes a C runtime system, so Rust projects
 Finally, Rust successfully compiles the freestanding executable at...
 
 ```
-bare_os/bootloader/stage_1/target/<name_of_your_json_file>/debug/stage_1
+scratch_os/bootloader/stage_1/target/<name_of_your_json_file>/debug/stage_1
 ``` 
 
 ...without any errors! Granted, we can’t do much with it right now (there isn't even an entry point), but it is a completely valid x86 executable that is entirely OS-independent!

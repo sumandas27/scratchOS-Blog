@@ -1,0 +1,5 @@
+[build]
+target = "../../target_specs/x86-16-bit.json"
+
+[unstable]
+build-std = ["core", "compiler_builtins"]

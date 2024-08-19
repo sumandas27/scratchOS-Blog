@@ -1,8 +1,8 @@
-# Writing a Boot Sector
+## Writing a Boot Sector
 
 We have a freestanding Rust binary designed for the x86 architecture, but it's still not quite ready yet for an x86 machine on start-up.
 
-## Creating a Raw Binary File
+### Creating a Raw Binary File
 
 An x86 machine on start-up expects a *raw binary file* as a bootloader. Let's see the format of our current executable...
 
@@ -62,7 +62,7 @@ objcopy -I elf32-i386 -O binary stage_1 stage_1.bin
 
 We finally have a file, `stage_1.bin`, in the format that an x86 machine on start-up would like. Let's run it.
 
-## The QEMU Emulator
+### The QEMU Emulator
 
 Testing your bootloader and your operating system on an actual computer is difficult as every time any change is made, you need to burn your project onto a USB stick and reboot your machine. If you develop with only one machine, constantly switching and rebooting between the operating system your making and the operating system you're developing on will really slow down any progress you're making. 
 
@@ -86,7 +86,7 @@ After a few seconds, QEMU will complain that there is `No bootable device`.
 
 QEMU isn't recognizing our binary file as valid bootable code. Let's revisit exactly how QEMU and other x86 machines on start-up handle the booting process.
 
-## What Went Wrong? Revisiting the Booting Process
+### What Went Wrong? Revisiting the Booting Process
 
 The command tells QEMU to treat our binary file `stage_1.bin` as its emulated *hard disk*, which is a type of secondary storage.
 
@@ -124,7 +124,7 @@ Remember, memory in secondary storage isn't directly usable by the CPU. In order
 
 If we want the machine to execute our program, 2️⃣ **we need to put our program at the *start* of the hard disk**. This allows the program to be placed at `0x7c00` in RAM where the CPU will begin executing it.
 
-## Creating a Linker Script
+### Creating a Linker Script
 
 To recap, we have 2 things to fix:
 
@@ -177,7 +177,7 @@ SECTIONS
 
 1️⃣ is where we will be declaring our entry point, and 2️⃣ is where we define the ordering of our sections.
 
-## Creating an Entry Point
+### Creating an Entry Point
 
 Let's start by adding an entry point to our Rust program. We'll just have it infinitely looping for now:
 
@@ -192,7 +192,7 @@ fn entry() -> !
 }
 
 #[panic_handler]
-fn panic(_: &core::panic::PanicInfo)
+fn panic(_: &core::panic::PanicInfo) -> !
 {
     loop {}
 }
@@ -233,7 +233,7 @@ SECTIONS
 >
 > So, we tell the the compiler to leave the `entry` function unmangled with the `#[no_mangle]` attribute so that the linker script and the linker are on the same page.
 
-## Placing the Entry Point
+### Placing the Entry Point
 
 We now have an `entry` point, but program entry points are not necessarily placed in the beginning of the produced binary. For example, Rust and C have no specification in the ordering of function placements, meaning their `main` entry point can be placed who knows where?
 
@@ -288,7 +288,7 @@ Because there isn't any global data, we don't have to worry about the `.data`, `
 
 We've effectively put our entry code at the start of our program, but there's still a problem.
 
-## Correcting Program Offsets
+### Correcting Program Offsets
 
 Remember, our bootloader will be placed at memory address `0x7c00`. However, the linker by default believes the program starts at `0x0`. We can verify this with the previous `readelf` tool output:
 
@@ -324,7 +324,7 @@ SECTIONS
   <img width="500px" src="img/entry-point-correct.png">
 </p>
 
-## Placing the Boot Magic Number
+### Placing the Boot Magic Number
 
 Linker scripts also allows adding specific bytes in specific places. We can include the magic number `0xaa55` by adding the following link section to the script:
 

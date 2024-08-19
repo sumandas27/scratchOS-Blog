@@ -1,4 +1,4 @@
-# Writing the Stage 1 Bootloader
+## Writing the Stage 1 Bootloader
 
 Before starting on an operating system, I'll spend the first few chapters writing a bootloader for our operating system.
 
