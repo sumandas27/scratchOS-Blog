@@ -1,4 +1,4 @@
-## Writing a Boot Sector
+# Writing a Boot Sector
 
 We have a freestanding Rust binary designed for the x86 architecture, but it's still not quite ready yet for an x86 machine on start-up.
 

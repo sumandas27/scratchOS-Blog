@@ -25,31 +25,36 @@ extern "C" fn entry() -> !
 }
 
 fn stage_1_main() -> !
-{
-    print_char(b'H');
-    print_char(b'e');
-    print_char(b'l');
-    print_char(b'l');
-    print_char(b'o');
-    print_char(b',');
-    print_char(b' ');
-    print_char(b'W');
-    print_char(b'o');
-    print_char(b'r');
-    print_char(b'l');
-    print_char(b'd');
-    print_char(b'!');
-    
-    loop {}
+{   
+    btl_print(b"Hello, World!");
+    inf_loop()
 }
 
-fn print_char(char_to_print: u8)
+fn btl_print_char(char_to_print: u8)
 {
     unsafe { core::arch::asm!
     (
         "int 16",
         inout("ah") 14u8 => _,
         inout("al") char_to_print => _
+    )}
+}
+
+fn btl_print(str_to_print: &[u8])
+{
+    for &c in str_to_print
+    {
+        btl_print_char(c);
+    }
+}
+
+fn inf_loop() -> !
+{
+    unsafe { core::arch::asm!
+    (
+        "cli",
+        "hlt",
+        options(noreturn)
     )}
 }
 

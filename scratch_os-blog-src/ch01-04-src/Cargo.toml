@@ -1,0 +1,8 @@
+[package]
+name = "scratchOS"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "scratch_os-runner"
+path = "runner.rs"

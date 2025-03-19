@@ -1,4 +1,4 @@
-## Exploring the Machine's Environment
+# Exploring the Machine's Environment
 
 One thing before we start, running the commands to generate and run our raw binary over and over again is a bit tedious, so my recommendation is to find some way to automate it. A shell script at the top-level directory `scratch_os/` would look like...
 
@@ -18,7 +18,7 @@ qemu-system-x86_64 -drive format=raw,file=stage_1.bin
 >
 > When Rust compiles a project through `cargo build` or `cargo run`, it compiles without optimizations by default to allow for the best debugging information for bugfixing and troubleshooting. This is problematic in our case as it would take very little code to exceed our 512-byte boot sector memory limit without optimizations.
 >
-> Adding the `--release` option tells Rust to maximize optimizations and minimize binary size when compiling the project. In our case, a finished stage 1 bootloader binary will take less than 200 bytes out of the 512-byte limit.
+> Adding the `--release` option tells Rust to maximize optimizations and minimize binary size when compiling the project. This option is what brings the final stage 1 bootloader to under 512 bytes.
 >
 > ❓ **2. Why are all my artifacts now in `release/` instead of `debug/`?**
 >
@@ -26,9 +26,9 @@ qemu-system-x86_64 -drive format=raw,file=stage_1.bin
 
 You could write a `Makefile` for this on Unix-based systems, although they aren't trivial to learn/write. 
 
-I keep my automated binary generation code in Rust, and make the top-level directory `scratch_os/` into its own `cargo` project. That way, all I have to do is run `cargo run` from the top-level directory `scratch_os/`, and the final raw binary is generated and executed on QEMU.
+I keep my automated binary generation code in Rust, and make the top-level directory `scratch_os/` into its own `cargo` project. That way, all I have to do is run `cargo run` from the top-level directory `scratch_os/`, and the final raw binary is generated and executed on QEMU. <u>This is the primary method I'll be using in this blog!</u>
 
-> ℹ️ My source code reference for the above project structure can be found under `scratch_os-blog-src/ch01-03-src` within this blog's [GitHub Repository](https://github.com/sumandas27/scratchOS-Blog).
+> ℹ️ My source code reference for the above Rust project structure can be found under `scratch_os-blog-src/ch01-03-src` within this blog's [GitHub Repository](https://github.com/sumandas27/scratchOS-Blog).
 
 The start of our bootloader code is going to pretty involved and will require a lot of inline assembly, so I don't think it's smart to jump straight into the code. Instead, I'll spend a lot of this section exploring the hardware environment we are in to motivate what our bootloader code aims to do. 
 
@@ -299,7 +299,7 @@ fn entry() -> !
 >
 > All inline assembly within Rust needs to be put around an `unsafe` block. There's a lot of ways to mess up with assembly and bypass required invariants by the Rust compiler, so the `unsafe` block acknowledges that we as programmers are responsible for making sure nothing within the block causes undefined behavior.
 
-As mentioned in the code block's comment, this won't work for a very subtle reason. Recall that every function call get their own stack frame. The `entry` function's stack frame is created before anything in `entry`'s body is run. Rust's compiler can change the stack pointer and segment registers (and any other registers) during this stack frame's creation. 
+As mentioned in the code block's comment, this won't work for a very subtle reason. Recall that every function call get their own stack frame. The `entry` function's stack frame is created before anything in `entry`'s body is run. Rust's compiler can change the stack pointer and segment registers (and any other register) during this stack frame's creation. 
 
 However, we manually change the stack pointer and segment registers within the `entry` function, invalidating the compiler's assumptions about these register states, hence causing undefined behavior.
 
@@ -415,7 +415,7 @@ fn stage_1_main() -> !
 }
 ```
 
-Tokens within inline assembly strings enclosed within curly braces introduces a new *assembler template* (`main` in this case). These templates must refer to either a register, variable, or a <u>function</u>. In this case we use the `sym` keyword to have the `main` template refer to the `stage_1_main` function with its mangled or unmangled symbol name (handled by the compiler 😄). 
+Tokens within inline assembly strings enclosed within curly braces introduces a new *template string* (`main` in this case). These templates must refer to either a register, variable, or a <u>function</u>. In this case we use the `sym` keyword to have the `main` template refer to the `stage_1_main` function with its mangled or unmangled symbol name (handled by the compiler 😄). 
 
 Now, `call {main}` effectively invokes `stage_1_main` as intended, and we can write all the Rust code we want within `stage_1_main`!
 
@@ -443,9 +443,12 @@ The BIOS software expects us to provide interrupt-specific information/parameter
 
 Printing a character with BIOS's 16<sup>th</sup> interrupt handler requires the following register parameters.
 
-* `ah` (high register of `ax`) - the subservice ID. BIOS's interrupt 16 actually provides many services relating to hardware display and graphics. Subservice 14 is specifically responsible for printing a single character to the screen.
+| Register | Expected Value                                     |
+| :------: | -------------------------------------------------- |
+| `ah`     | The Subservice ID                                  |
+| `al`     | The ASCII Representation of the Character to Print |
 
-* `al` (low register of `ax`) - the ASCII representation of the character to print.
+BIOS's interrupt 16 actually provides many services relating to hardware display and graphics. Subservice **14** is specifically responsible for printing a single character to the screen.
 
 > ℹ️ **NOTE:** The *ASCII Table* is a specification that maps common characters to numbers 0-255. The official mapping can be found at <https://www.ascii-code.com>.
 
@@ -526,7 +529,7 @@ unsafe { core::arch::asm!
 This assembly routine will properly print the lowercase character `a` while preserving all register states! Let's generalize this into a utility function to print any character:
 
 ```Rust
-fn print_char(char_to_print: u8)
+fn btl_print_char(char_to_print: u8)
 {
     unsafe { core::arch::asm!
     (
@@ -539,30 +542,29 @@ fn print_char(char_to_print: u8)
 
 This is ideal since all possible `u8` values range from 0-255, all of which has a mapping to some character in ASCII. In other words, it's not possible to input a `u8` that goes out-of-bounds from the ASCII table.
 
-We can use this utility function to write a `Hello, World!` within `stage_1_main`:
+We can use this to write a generic print function using BIOS:
+
+```Rust
+fn btl_print(str_to_print: &[u8])
+{
+    for &c in str_to_print
+    {
+        btl_print_char(c);
+    }
+}
+```
+
+Let's test this and write a `Hello, World!` within `stage_1_main`:
 
 ```Rust
 fn stage_1_main() -> !
 {
-    print_char(b'H');
-    print_char(b'e');
-    print_char(b'l');
-    print_char(b'l');
-    print_char(b'o');
-    print_char(b',');
-    print_char(b' ');
-    print_char(b'W');
-    print_char(b'o');
-    print_char(b'r');
-    print_char(b'l');
-    print_char(b'd');
-    print_char(b'!');
-    
+    btl_print(b"Hello, World!");
     loop {}
 }
 ```
 
-The literal `b'H'` (or the `b`yte-wide representation value of `H`) is a Rust language feature that converts the character `H` to its ASCII representation as a `u8`, perfect for our use case.
+The literal `b"Hello, World!"` (or the `b`yte representation of `Hello, World!`) is a Rust language feature that converts the string `Hello, World!` into a slice of ASCII representations of its characters, perfect for our use case.
 
 Running it on the QEMU emulator:
 
@@ -570,4 +572,52 @@ Running it on the QEMU emulator:
   <img width="600px", src="img/bios-hello-world.png">
 </p>
 
-Swag. In the next section, we'll finish the stage 1 bootloader by using BIOS utilities again to acquire more space beyond the 512-byte long boot sector!
+Swag.
+
+### A More Efficient `loop {}`
+
+`loop {}` is what is called a *busy wait*, where the CPU burns all of its energy and resources running the infinite looping instruction.
+
+Looking at your machine's Task Manager/Activity Monitor, you can see the bootloader takes up a *lot* of energy:
+
+<p align="center">
+  <img src="img/loop-inefficient.png">
+</p>
+
+100% CPU usage is a horror 😔 
+
+Let's make this more efficient. As mentioned before, the `hlt` instruction stops the CPU completely *until* an interrupt is encountered (where code execution will continue past `hlt`). 
+
+Although interrupts are disabled at boot time, let's be safe and disable interrupts ourselves to protect against executing past the `hlt` instruction.
+
+Thankfully, the `cli` instruction specifically disables interrupts:
+
+```Rust
+fn inf_loop() -> !
+{
+    unsafe { core::arch::asm!
+    (
+        "cli",
+        "hlt",
+        options(noreturn)
+    )}
+}
+```
+
+Updating `stage_1_main`:
+
+```Rust
+fn stage_1_main() -> !
+{   
+    btl_print(b"Hello, World!");
+    inf_loop()
+}
+```
+
+Let's see how much CPU power this saved:
+
+<p align="center">
+  <img src="img/loop-efficient.png">
+</p>
+
+Huge. In the next section, we'll finish the stage 1 bootloader by using BIOS utilities again to acquire more space beyond the 512-byte long boot sector.

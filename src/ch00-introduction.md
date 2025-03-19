@@ -1,3 +1,5 @@
+**TODO: delete all `Cargo.lock` files**
+
 > ❓ **Is there a source code reference for this blog?**
 >
 > The final source code at the end of every blog post can be found within the `scratch_os-blog-src/` directory within this blog's [GitHub Repository](https://github.com/sumandas27/scratchOS-Blog) to be used as a reference as you read through the blog.

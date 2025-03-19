@@ -3,7 +3,7 @@ authors = ["suman"]
 language = "en"
 multilingual = false
 src = "src"
-title = "A dependency-free x86_64 Rust bootloader and operating system blog"
+title = "scratchOS"
 
 [output.html]
 mathjax-support = true

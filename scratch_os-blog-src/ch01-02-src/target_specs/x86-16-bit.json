@@ -5,5 +5,6 @@
     "target-pointer-width": "32",
     "panic-strategy": "abort",
     "linker": "rust-lld",
-    "linker-flavor": "ld.lld"
+    "linker-flavor": "ld.lld",
+    "relocation-model": "static"
 }
